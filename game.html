@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retro Arcade - Play SNES Games</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #14121F;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #FFF;
+      overflow: hidden;
+      background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1.5px, transparent 0);
+      background-size: 22px 22px;
+    }
+    #game-container {
+      width: 100%;
+      height: 100%;
+      max-width: 900px;
+      max-height: 600px;
+      border: 4px solid #14121F;
+      box-shadow: 10px 10px 0 #CBFF4D;
+      background: #000;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #game {
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+    #setup-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 40px;
+      z-index: 10;
+    }
+    #setup-panel h2 {
+      font-size: 32px;
+      margin-bottom: 12px;
+      color: #CBFF4D;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    #setup-panel p {
+      font-size: 15px;
+      max-width: 500px;
+      line-height: 1.6;
+      color: #CCC;
+      margin-bottom: 30px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px 28px;
+      border: 3px solid #14121F;
+      background: #FF3E8A;
+      color: #14121F;
+      box-shadow: 6px 6px 0 #CBFF4D;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.1s ease;
+      position: relative;
+    }
+    .action-btn.alt {
+      background: #CBFF4D;
+      box-shadow: 6px 6px 0 #FF3E8A;
+    }
+    .action-btn:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 4px 4px 0 #CBFF4D;
+    }
+    .action-btn.alt:hover {
+      box-shadow: 4px 4px 0 #FF3E8A;
+    }
+    #rom-select {
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    .back-btn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: #FF3E8A;
+      color: #14121F;
+      border: 3px solid #14121F;
+      padding: 8px 16px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 4px 4px 0 #14121F;
+      z-index: 9999;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.1s ease;
+      text-transform: uppercase;
+    }
+    .back-btn:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 #14121F;
+    }
+    .controls-info {
+      margin-top: 30px;
+      font-size: 12px;
+      font-family: 'Space Mono', monospace;
+      color: #888;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <a href="index.html" class="back-btn">← Exit Arcade</a>
+
+  <div id="game-container">
+    <div id="setup-panel">
+      <h2>Arcade Console</h2>
+      
+      <!-- Local file:// Warning -->
+      <div id="local-warning" style="display:none; background:#FF3E8A; border:3px solid #14121F; padding:15px; margin-bottom:20px; font-weight:bold; color:#14121F; box-shadow:4px 4px 0 #CBFF4D; font-size:14px; max-width:500px; text-align:left;">
+        ⚠️ LOCAL ENVIRONMENT WARNING:<br>
+        WebAssembly emulators cannot run locally from a 'file://' address due to browser security settings. 
+        To test this locally, run a local web server (e.g., start VS Code 'Live Server' or run 'npx http-server' in your terminal). Once deployed to Render, it will load perfectly.
+      </div>
+
+      <p>
+        Play retro games directly in your browser. Launch the pre-loaded homebrew game or load your own SNES ROM backup (like <strong>Street Fighter II</strong>) from your computer.
+      </p>
+      
+      <div class="btn-row">
+        <button class="action-btn" id="play-default-btn">Play Pre-loaded Game 🕹️</button>
+        
+        <div class="action-btn alt">
+          Choose Custom ROM
+          <input type="file" id="rom-select" accept=".sfc,.smc,.zip">
+        </div>
+      </div>
+
+      <div class="controls-info">
+        🎮 Controls: Arrows for D-pad | X/Z/S/A/D/C for Actions | Enter for Start | Shift for Select
+      </div>
+    </div>
+    
+    <div id="game"></div>
+  </div>
+
+  <script>
+    // Check if the page is opened locally via file:// protocol
+    if (window.location.protocol === 'file:') {
+      document.getElementById('local-warning').style.display = 'block';
+    }
+
+    function launchEmulator(romUrl) {
+      document.getElementById('setup-panel').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+
+      window.EJS_player = "#game";
+      window.EJS_core = "snes";
+      window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+      window.EJS_gameUrl = romUrl;
+
+      const loader = document.createElement('script');
+      loader.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
+      document.body.appendChild(loader);
+    }
+
+    document.getElementById('play-default-btn').addEventListener('click', function() {
+      launchEmulator("tchouv2.smc");
+    });
+
+    document.getElementById('rom-select').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const romUrl = URL.createObjectURL(file);
+      launchEmulator(romUrl);
+    });
+  </script>
+
+</body>
+</html>
